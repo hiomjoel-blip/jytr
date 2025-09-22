@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Deriv Differs Signals Analyzer (Auto Trading)</title>
+  <style>
+    :root {
+      --bg: #0f172a;        /* slate-900 */
+      --panel: #111827;     /* gray-900 */
+      --muted: #1f2937;     /* gray-800 */
+      --text: #e5e7eb;      /* gray-200 */
+      --sub: #9ca3af;       /* gray-400 */
+      --brand: #38bdf8;     /* sky-400 */
+      --good: #22c55e;      /* green-500 */
+      --bad: #ef4444;       /* red-500 */
+      --warn: #f59e0b;      /* amber-500 */
+      --accent: #818cf8;    /* indigo-400 */
+      --trading: #10b981;   /* emerald-500 */
+    }
+    
+    *{ box-sizing: border-box; margin: 0; padding: 0; }
+    body{
+      margin:0; background:var(--bg); color:var(--text); 
+      font: 14px/1.6 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial;
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--bg) 0%, #0a0f1d 100%);
+    }
+    
+    /* Header styling */
+    header{
+      padding: 20px 24px; 
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      display: flex; align-items: center; justify-content: space-between; 
+      gap: 12px;
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    h1{ 
+      margin:0; 
+      font-size: 22px; 
+      color: var(--brand);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h1:before {
+      content: "•";
+      color: var(--accent);
+      font-size: 24px;
+    }
+    
+    /* Layout */
+    .wrap{ 
+      max-width: 1200px; 
+      margin: 0 auto; 
+      padding: 24px; 
+    }
+    .grid{ 
+      display: grid; 
+      grid-template-columns: 340px 1fr; 
+      gap: 24px; 
+      align-items: start; 
+    }
+    
+    /* Card styling */
+    .card{ 
+      background: var(--panel); 
+      border: 1px solid var(--muted); 
+      border-radius: 16px; 
+      padding: 20px; 
+      box-shadow: 0 8px 30px rgba(0,0,0,.3);
+      position: relative;
+      overflow: hidden;
+    }
+    .card:after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, var(--brand), var(--accent));
+    }
+    .card h2{ 
+      margin: 0 0 16px; 
+      font-size: 18px; 
+      color: #fff; 
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card h2:before {
+      content: "";
+      display: block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--brand);
+    }
+    
+    /* Form elements */
+    label{ 
+      display: block; 
+      margin: 14px 0 8px; 
+      color: var(--sub); 
+      font-weight: 600; 
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    input, select{ 
+      width: 100%; 
+      padding: 12px 14px; 
+      border-radius: 10px; 
+      border: 1px solid var(--muted); 
+      background: #0b1220; 
+      color: #e5e7eb; 
+      outline: none;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+    input:focus, select:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+    }
+    input::placeholder{ color: #6b7280; }
+    
+    .row{ display: flex; gap: 12px; }
+    .row > *{ flex: 1; }
+    
+    /* Buttons */
+    button{ 
+      cursor: pointer; 
+      border: none; 
+      border-radius: 10px; 
+      padding: 12px 16px; 
+      font-weight: 700; 
+      font-size: 14px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-primary{ 
+      background: var(--brand); 
+      color: #052c3b; 
+    }
+    .btn-primary:hover {
+      background: #0ea5e9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+    }
+    .btn-muted{ 
+      background: #0b1220; 
+      color: var(--text); 
+      border: 1px solid var(--muted); 
+    }
+    .btn-muted:hover {
+      background: #131d33;
+      border-color: var(--brand);
+    }
+    .btn-danger{ 
+      background: var(--bad); 
+      color: #fff; 
+    }
+    .btn-danger:hover {
+      background: #dc2626;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+    .btn-trading{ 
+      background: var(--trading); 
+      color: #fff; 
+    }
+    .btn-trading:hover {
+      background: #059669;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    
+    /* Status indicator */
+    .status{ 
+      display: flex; 
+      align-items: center; 
+      gap: 8px; 
+      font-weight: 600; 
+      padding: 8px 14px;
+      background: rgba(31, 41, 55, 0.5);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .dot{ 
+      width: 10px; 
+      height: 10px; 
+      border-radius: 50%; 
+      background: #6b7280; 
+      display: inline-block; 
+    }
+    .dot.ok{ background: var(--good); }
+    .dot.err{ background: var(--bad); }
+    .dot.warn{ background: var(--warn); }
+    .dot.trading{ background: var(--trading); }
+    
+    /* Output section */
+    #output pre{ 
+      background: #0b1220; 
+      border: 1px solid var(--muted); 
+      padding: 14px; 
+      border-radius: 10px; 
+      overflow: auto; 
+      font-size: 13px;
+      line-height: 1.5;
+      max-height: 200px;
+    }
+    
+    /* Bar chart */
+    .bars{ 
+      display: grid; 
+      grid-template-columns: repeat(10, 1fr); 
+      gap: 10px; 
+      align-items: end; 
+      height: 180px; 
+      margin-top: 16px;
+      padding: 10px;
+      background: rgba(11, 18, 32, 0.5);
+      border-radius: 12px;
+      border: 1px solid var(--muted);
+    }
+    .bar{ 
+      background: linear-gradient(to top, var(--brand), var(--accent)); 
+      border: 1px solid rgba(56, 189, 248, 0.3); 
+      border-radius: 8px; 
+      position: relative;
+      transition: height 0.3s ease;
+    }
+    .bar > span{ 
+      position: absolute; 
+      left: 50%; 
+      transform: translateX(-50%); 
+      bottom: -24px; 
+      font-size: 12px; 
+      color: var(--sub); 
+      font-weight: 600;
+    }
+    .bar > em{ 
+      position: absolute; 
+      top: -26px; 
+      left: 50%; 
+      transform: translateX(-50%); 
+      font-style: normal; 
+      font-size: 12px; 
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+    
+    /* Signal indicator */
+    .signal{ 
+      font-weight: 800; 
+      margin: 16px 0 0; 
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(11, 18, 32, 0.5);
+      border: 1px solid var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .signal:before {
+      content: "⚠";
+      font-size: 20px;
+    }
+    .good{ color: var(--good); }
+    .good:before { content: "✅"; }
+    .bad{ color: var(--bad); }
+    .bad:before { content: "❌"; }
+    .warn{ color: var(--warn); }
+    .trading{ color: var(--trading); }
+    .trading:before { content: "🚀"; }
+    
+    /* Key-value stats */
+    .kvs{ 
+      display: grid; 
+      grid-template-columns: repeat(3, 1fr); 
+      gap: 12px; 
+      margin-top: 16px; 
+    }
+    .kv{ 
+      background: #0b1220; 
+      border: 1px solid var(--muted); 
+      border-radius: 12px; 
+      padding: 14px; 
+      text-align: center;
+    }
+    .kv .k{ 
+      color: var(--sub); 
+      font-size: 12px; 
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    .kv .v{ 
+      font-size: 18px; 
+      font-weight: 800; 
+      color: var(--brand);
+    }
+    .v.good { color: var(--good); }
+    .v.bad { color: var(--bad); }
+    .v.trading { color: var(--trading); }
+    
+    /* Footer */
+    footer{ 
+      text-align: center; 
+      color: var(--sub); 
+      padding: 24px 10px; 
+      border-top: 1px solid var(--muted); 
+      margin-top: 30px; 
+      font-size: 13px;
+    }
+    .note{ 
+      color: var(--sub); 
+      font-size: 12px; 
+      margin-top: 12px;
+      line-height: 1.5;
+    }
+    
+    /* Auto-trading panel */
+    .auto-trading {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 20px;
+    }
+    .auto-trading h3 {
+      color: var(--trading);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .auto-trading h3:before {
+      content: "🤖";
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .wrap {
+        padding: 16px;
+      }
+      .kvs {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    @media (max-width: 600px) {
+      .row {
+        flex-direction: column;
+      }
+      .kvs {
+        grid-template-columns: 1fr;
+      }
+      header {
+        flex-direction: column;
+        text-align: center;
+        padding: 16px;
+      }
+      h1 {
+        font-size: 18px;
+      }
+    }
+    
+    /* Animation for new data */
+    @keyframes pulse {
+      0% { opacity: 0.7; }
+      50% { opacity: 1; }
+      100% { opacity: 0.7; }
+    }
+    
+    .pulse {
+      animation: pulse 1.5s infinite;
+    }
+    
+    /* Animation for trading */
+    @keyframes tradingPulse {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    
+    .trading-active {
+      animation: tradingPulse 2s infinite;
+      border-color: var(--trading);
+    }
+  </style>
+</head>
+<body>
+  <header class="wrap">
+    <h1>Deriv Differs Signals Analyzer</h1>
+    <div class="status"><span id="connDot" class="dot"></span><span id="connText">Disconnected</span></div>
+  </header>
+
+  <main class="wrap grid">
+    <!-- Controls -->
+    <section class="card">
+      <h2>Connection & Settings</h2>
+      <label>Deriv API Key</label>
+      <input type="password" id="apiKey" placeholder="Paste your Deriv API Key" autocomplete="off" />
+
+      <div class="row">
+        <div>
+          <label>App ID (Deriv API Dashboard)</label>
+          <input type="text" id="appId" placeholder="e.g., 1089 (demo public)" value="1089" />
+        </div>
+        <div>
+          <label>Endpoint</label>
+          <select id="endpoint">
+            <option value="wss://ws.derivws.com/websockets/v3">Deriv (Global)</option>
+            <option value="wss://ws.binaryws.com/websockets/v3">Legacy</option>
+          </select>
+        </div>
+      </div>
+
+      <label>Symbol</label>
+      <select id="symbol">
+        <optgroup label="Volatility (standard)">
+          <option value="R_10">Volatility 10 Index</option>
+          <option value="R_25">Volatility 25 Index</option>
+          <option value="R_50">Volatility 50 Index</option>
+          <option value="R_75">Volatility 75 Index</option>
+          <option value="R_100" selected>Volatility 100 Index</option>
+        </optgroup>
+        <optgroup label="Volatility (1s)">
+          <option value="R_10_1S">Volatility 10 (1s)</option>
+          <option value="R_25_1S">Volatility 25 (1s)</option>
+          <option value="R_50_1S">Volatility 50 (1s)</option>
+          <option value="R_75_1S">Volatility 75 (1s)</option>
+          <option value="R_100_1S">Volatility 100 (1s)</option>
+        </optgroup>
+        <optgroup label="Jump Indices">
+          <option value="JD10">Jump 10</option>
+          <option value="JD25">Jump 25</option>
+          <option value="JD50">Jump 50</option>
+          <option value="JD75">Jump 75</option>
+          <option value="JD100">Jump 100</option>
+        </optgroup>
+      </select>
+
+      <div class="row">
+        <div>
+          <label>Rolling Window (ticks)</label>
+          <input type="number" id="window" min="50" max="5000" step="50" value="500" />
+        </div>
+        <div>
+          <label>Cluster Threshold (%)</label>
+          <input type="number" id="cluster" min="10" max="25" step="0.5" value="13" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Stake (USD)</label>
+          <input type="number" id="stake" min="0.35" step="0.01" value="1" />
+        </div>
+        <div>
+          <label>Duration (ticks)</label>
+          <input type="number" id="duration" min="1" max="10" value="5" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Target Profit (USD)</label>
+          <input type="number" id="tp" min="0" step="0.1" value="10" />
+        </div>
+        <div>
+          <label>Stop Loss (USD)</label>
+          <input type="number" id="sl" min="0" step="0.1" value="10" />
+        </div>
+      </div>
+
+      <div class="auto-trading">
+        <h3>Auto-Trading Settings</h3>
+        <div class="row">
+          <div>
+            <label>Trade Cooldown (s)</label>
+            <input type="number" id="cooldown" min="1" max="60" value="3" />
+          </div>
+          <div>
+            <label>Max Trades/Hr</label>
+            <input type="number" id="maxTrades" min="1" max="100" value="20" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px;">
+          <button class="btn-trading" id="btnAutoStart">🤖 Start Auto Trading</button>
+          <button class="btn-danger" id="btnAutoStop" disabled>⏹ Stop Auto Trading</button>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:16px;">
+        <button class="btn-primary" id="btnStart">▶ Start</button>
+        <button class="btn-danger" id="btnStop" disabled>⏹ Stop</button>
+        <button class="btn-muted" id="btnClear">↺ Clear Data</button>
+      </div>
+      <p class="note" style="margin-top:12px;">Tip: Use your own <b>App ID</b> from Deriv API dashboard for stable auth. The public 1089 is for demo/testing.</p>
+    </section>
+
+    <!-- Output / Analytics -->
+    <section class="card" id="output">
+      <h2>Live Frequencies & Signals</h2>
+      <div class="kvs">
+        <div class="kv"><div class="k">Ticks in Window</div><div class="v" id="kvTicks">0</div></div>
+        <div class="kv"><div class="k">Hottest Digit</div><div class="v" id="kvHot">–</div></div>
+        <div class="kv"><div class="k">Coldest Digit</div><div class="v" id="kvCold">–</div></div>
+        <div class="kv"><div class="k">Balance</div><div class="v" id="kvBalance">–</div></div>
+        <div class="kv"><div class="k">Session P/L</div><div class="v" id="kvPL">0</div></div>
+        <div class="kv"><div class="k">Auto Trading</div><div class="v" id="kvAutoStatus">Off</div></div>
+      </div>
+
+      <div class="bars" id="bars"></div>
+
+      <div id="signal" class="signal warn">Waiting for data…</div>
+
+      <h3 style="margin-top:20px; display: flex; align-items: center; gap: 8px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 16V12M12 8H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" stroke="var(--brand)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Raw Distribution (%)
+      </h3>
+      <pre id="freqText">—</pre>
+
+      <h3 style="display: flex; align-items: center; gap: 8px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Recent Last Digits (Newest → Oldest)
+      </h3>
+      <pre id="recent">—</pre>
+
+      <h3 style="display: flex; align-items: center; gap: 8px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 16V12M12 8H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" stroke="var(--brand)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Trade Log
+      </h3>
+      <pre id="tradeLog">—</pre>
+    </section>
+  </main>
+
+  <footer>
+    Built for educational analysis of Deriv digit frequencies. Automated trading enabled. Manage risk. No martingale.
+  </footer>
+
+  <script>
+    let ws = null;
+    let tickHistory = [];
+    let lastUpdateTime = 0;
+    let balance = 0;
+    let sessionStartBalance = 0;
+    let openContract = null;
+    let tradingEnabled = false;
+    let isPlacing = false;
+    let autoTradingEnabled = false;
+    let consecutiveWins = 0;
+    let consecutiveLosses = 0;
+    let tradeHistory = [];
+    let lastTradeDigit = null;
+    let lastTradeTime = 0;
+    let tradesThisHour = 0;
+    let tradeCooldown = 3000; // 3 seconds cooldown between trades
+    let tradeStartTime = 0;
+
+    const els = {
+      apiKey:   document.getElementById('apiKey'),
+      appId:    document.getElementById('appId'),
+      endpoint: document.getElementById('endpoint'),
+      symbol:   document.getElementById('symbol'),
+      window:   document.getElementById('window'),
+      cluster:  document.getElementById('cluster'),
+      stake:    document.getElementById('stake'),
+      duration: document.getElementById('duration'),
+      tp:       document.getElementById('tp'),
+      sl:       document.getElementById('sl'),
+      cooldown: document.getElementById('cooldown'),
+      maxTrades: document.getElementById('maxTrades'),
+      btnStart: document.getElementById('btnStart'),
+      btnStop:  document.getElementById('btnStop'),
+      btnClear: document.getElementById('btnClear'),
+      btnAutoStart: document.getElementById('btnAutoStart'),
+      btnAutoStop: document.getElementById('btnAutoStop'),
+      connDot:  document.getElementById('connDot'),
+      connText: document.getElementById('connText'),
+      kvTicks:  document.getElementById('kvTicks'),
+      kvHot:    document.getElementById('kvHot'),
+      kvCold:   document.getElementById('kvCold'),
+      kvBalance:document.getElementById('kvBalance'),
+      kvPL:     document.getElementById('kvPL'),
+      kvAutoStatus: document.getElementById('kvAutoStatus'),
+      bars:     document.getElementById('bars'),
+      signal:   document.getElementById('signal'),
+      freqText: document.getElementById('freqText'),
+      recent:   document.getElementById('recent'),
+      tradeLog: document.getElementById('tradeLog')
+    };
+
+    // Build bars UI once
+    for(let d=0; d<10; d++){
+      const div = document.createElement('div');
+      div.className = 'bar';
+      div.setAttribute('data-digit', d);
+      const em = document.createElement('em');
+      em.textContent = '0%';
+      const span = document.createElement('span');
+      span.textContent = String(d);
+      div.appendChild(em); div.appendChild(span);
+      els.bars.appendChild(div);
+    }
+
+    function setStatus(state, text){
+      els.connDot.classList.remove('ok','err','warn','trading');
+      if(state==='ok') els.connDot.classList.add('ok');
+      if(state==='err') els.connDot.classList.add('err');
+      if(state==='warn') els.connDot.classList.add('warn');
+      if(state==='trading') els.connDot.classList.add('trading');
+      els.connText.textContent = text || '';
+    }
+
+    function log(msg){
+      els.tradeLog.textContent = `[${new Date().toLocaleTimeString()}] ${msg}\n${els.tradeLog.textContent}`;
+      els.tradeLog.scrollTop = els.tradeLog.scrollHeight;
+    }
+
+    function connect(){
+      const apiKey = els.apiKey.value.trim();
+      const appId = (els.appId.value || '').trim();
+      const endpoint = els.endpoint.value;
+      const symbol = els.symbol.value;
+
+      if(!apiKey){ 
+        alert('Please enter a valid Deriv API key.');
+        log('Error: No API key provided.');
+        return; 
+      }
+      if(!appId){ 
+        alert('Please enter a valid App ID.');
+        log('Error: No App ID provided.');
+        return; 
+      }
+
+      cleanup();
+      setStatus('warn','Connecting…');
+      log('Connecting to WebSocket…');
+      sessionStartBalance = 0;
+      tradingEnabled = true;
+      openContract = null;
+      isPlacing = false;
+      consecutiveWins = 0;
+      consecutiveLosses = 0;
+      tradeHistory = [];
+      tradesThisHour = 0;
+      tradeStartTime = Date.now();
+
+      const url = `${endpoint}?app_id=${encodeURIComponent(appId)}`;
+      ws = new WebSocket(url);
+
+      ws.onopen = () => {
+        setStatus('ok','Connected. Authorizing…');
+        log('WebSocket connected, sending authorization request.');
+        ws.send(JSON.stringify({ authorize: apiKey }));
+      };
+
+      ws.onmessage = (evt) => {
+        const data = JSON.parse(evt.data);
+        if(data.error){
+          setStatus('err', `Error: ${data.error.message}`);
+          log(`Error: ${data.error.message}`);
+          isPlacing = false;
+          return;
+        }
+
+        if(data.msg_type === 'authorize'){
+          setStatus('ok','Authorized. Subscribing to ticks and balance…');
+          log('Authorization successful.');
+          tradingEnabled = true;
+          ws.send(JSON.stringify({ ticks_history: symbol, count: parseInt(els.window.value), end: 'latest', style: 'ticks' }));
+          ws.send(JSON.stringify({ ticks: symbol, subscribe: 1 }));
+          ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
+          return;
+        }
+
+        if(data.msg_type === 'history'){
+          if(data.history && data.history.prices){
+            tickHistory = data.history.prices.map(p => parseInt(String(p).slice(-1)));
+            log(`Received ${tickHistory.length} historical ticks.`);
+            render();
+          }
+          return;
+        }
+
+        if(data.msg_type === 'tick'){
+          if(data.tick && data.tick.quote){
+            const digit = parseInt(String(data.tick.quote).slice(-1));
+            const maxTicks = parseInt(els.window.value, 10) || 500;
+            tickHistory.unshift(digit);
+            if(tickHistory.length > maxTicks) tickHistory.pop();
+            
+            const now = Date.now();
+            if(now - lastUpdateTime > 500){
+              document.body.classList.add('pulse');
+              setTimeout(() => document.body.classList.remove('pulse'), 300);
+              lastUpdateTime = now;
+            }
+
+            render();
+            
+            // Check if we should place a trade (auto-trading)
+            if (autoTradingEnabled && !isPlacing && !openContract) {
+              checkAndPlaceTrade();
+            }
+          }
+          return;
+        }
+
+        if(data.msg_type === 'balance'){
+          balance = data.balance.balance;
+          els.kvBalance.textContent = balance.toFixed(2);
+          if(sessionStartBalance === 0) sessionStartBalance = balance;
+          const pl = balance - sessionStartBalance;
+          els.kvPL.textContent = pl.toFixed(2);
+          els.kvPL.classList.remove('good', 'bad');
+          if(pl > 0) els.kvPL.classList.add('good');
+          if(pl < 0) els.kvPL.classList.add('bad');
+
+          const tpVal = parseFloat(els.tp.value) || 0;
+          const slVal = parseFloat(els.sl.value) || 0;
+          if(pl >= tpVal || pl <= -slVal){
+            tradingEnabled = false;
+            autoTradingEnabled = false;
+            updateAutoTradingUI();
+            stop();
+            setStatus('warn', `${pl >= tpVal ? 'Target Profit' : 'Stop Loss'} hit. Trading stopped.`);
+            log(`${pl >= tpVal ? 'Target Profit' : 'Stop Loss'} hit: ${pl.toFixed(2)} USD.`);
+          }
+          return;
+        }
+
+        if(data.msg_type === 'proposal'){
+          const proposal = data.proposal;
+          if(proposal && isPlacing && tradingEnabled && !openContract){
+            ws.send(JSON.stringify({ buy: proposal.id, price: proposal.ask_price }));
+            log(`Buying contract ID ${proposal.id} at ${proposal.ask_price} USD`);
+          } else {
+            log('Proposal ignored: ' + (!proposal ? 'No proposal data' : !isPlacing ? 'Not placing' : !tradingEnabled ? 'Trading disabled' : 'Contract already open'));
+            isPlacing = false;
+          }
+          return;
+        }
+
+        if(data.msg_type === 'buy'){
+          if(data.buy && data.buy.contract_id){
+            openContract = data.buy.contract_id;
+            log(`Contract ${openContract} bought successfully.`);
+            ws.send(JSON.stringify({ proposal_open_contract: 1, contract_id: openContract, subscribe: 1 }));
+          } else {
+            log('Buy response without contract ID.');
+            isPlacing = false;
+          }
+          return;
+        }
+
+        if(data.msg_type === 'proposal_open_contract'){
+          const contract = data.proposal_open_contract;
+          if(contract && (contract.is_sold || contract.status !== 'open')){
+            const profit = contract.profit || 0;
+            log(`Contract ${contract.contract_id} closed, profit: ${profit.toFixed(2)} USD`);
+            
+            // Update win/loss streaks
+            if (profit > 0) {
+              consecutiveWins++;
+              consecutiveLosses = 0;
+            } else {
+              consecutiveLosses++;
+              consecutiveWins = 0;
+            }
+            
+            // Record trade history
+            tradeHistory.push({
+              time: new Date(),
+              digit: lastTradeDigit,
+              profit: profit,
+              win: profit > 0
+            });
+            
+            openContract = null;
+            isPlacing = false;
+            ws.send(JSON.stringify({ balance: 1 }));
+          }
+          return;
+        }
+      };
+
+      ws.onerror = () => {
+        setStatus('err','WebSocket error');
+        log('WebSocket error occurred.');
+      };
+      ws.onclose = () => {
+        setStatus('warn','Disconnected');
+        log('WebSocket disconnected.');
+      };
+
+      els.btnStart.disabled = true;
+      els.btnStop.disabled = false;
+      updateAutoTradingUI();
+    }
+
+    function cleanup(){
+      if(ws && ws.readyState === WebSocket.OPEN){
+        try{ 
+          ws.close(); 
+          log('WebSocket closed.');
+        } catch(e){ 
+          log('Error closing WebSocket: ' + e.message); 
+        }
+      }
+      ws = null;
+      openContract = null;
+      isPlacing = false;
+    }
+
+    function stop(){
+      cleanup();
+      setStatus('warn','Stopped');
+      log('Trading stopped manually.');
+      els.btnStart.disabled = false;
+      els.btnStop.disabled = true;
+      tradingEnabled = false;
+      autoTradingEnabled = false;
+      updateAutoTradingUI();
+    }
+
+    function clearData(){
+      tickHistory = [];
+      sessionStartBalance = balance;
+      els.kvPL.textContent = '0';
+      els.kvPL.classList.remove('good', 'bad');
+      els.tradeLog.textContent = '—';
+      log('Data cleared.');
+      render();
+    }
+
+    function startAutoTrading() {
+      if (!tradingEnabled || !ws || ws.readyState !== WebSocket.OPEN) {
+        log("Cannot start auto trading - not connected to Deriv");
+        return;
+      }
+      
+      autoTradingEnabled = true;
+      tradesThisHour = 0;
+      tradeStartTime = Date.now();
+      log("Auto trading started. Will place trades when conditions are favorable.");
+      updateAutoTradingUI();
+      setStatus('trading', 'Auto Trading Active');
+    }
+    
+    function stopAutoTrading() {
+      autoTradingEnabled = false;
+      log("Auto trading stopped.");
+      updateAutoTradingUI();
+      setStatus('ok', 'Connected (Auto Trading Off)');
+    }
+    
+    function updateAutoTradingUI() {
+      els.kvAutoStatus.textContent = autoTradingEnabled ? 'Active' : 'Off';
+      els.kvAutoStatus.className = autoTradingEnabled ? 'v trading' : 'v';
+      
+      els.btnAutoStart.disabled = autoTradingEnabled || !tradingEnabled;
+      els.btnAutoStop.disabled = !autoTradingEnabled;
+      
+      if (autoTradingEnabled) {
+        els.signal.classList.add('trading-active');
+      } else {
+        els.signal.classList.remove('trading-active');
+      }
+    }
+
+    function checkAndPlaceTrade() {
+      // Reset hourly trade count if needed
+      const now = Date.now();
+      if (now - tradeStartTime > 3600000) { // 1 hour
+        tradesThisHour = 0;
+        tradeStartTime = now;
+      }
+      
+      // Check max trades per hour
+      const maxTrades = parseInt(els.maxTrades.value) || 20;
+      if (tradesThisHour >= maxTrades) {
+        log(`Hourly trade limit reached (${maxTrades}). Waiting for reset.`);
+        return;
+      }
+      
+      // Check trade cooldown
+      if (now - lastTradeTime < tradeCooldown) {
+        return; // Still in cooldown period
+      }
+      
+      const counts = Array(10).fill(0);
+      for(const d of tickHistory) counts[d]++;
+      const total = tickHistory.length || 1;
+      const freqs = counts.map(c => (c/total*100));
+      
+      let maxFreq = Math.max(...freqs);
+      const threshold = parseFloat(els.cluster.value) || 13;
+      
+      // Only trade if we have enough data and the hottest digit is above threshold
+      if(tickHistory.length >= 50 && maxFreq > threshold){
+        const hotDigit = freqs.indexOf(maxFreq);
+        placeTrade(hotDigit);
+      }
+    }
+
+    function placeTrade(hotDigit){
+      if(!tradingEnabled || openContract || isPlacing || !ws || ws.readyState !== WebSocket.OPEN){
+        log(`Cannot place trade: ${!tradingEnabled ? 'Trading disabled' : openContract ? 'Contract already open' : isPlacing ? 'Trade in progress' : 'WebSocket not connected'}`);
+        return;
+      }
+
+      // Check trade cooldown
+      const now = Date.now();
+      if (now - lastTradeTime < tradeCooldown) {
+        log(`Trade cooldown: ${Math.ceil((tradeCooldown - (now - lastTradeTime)) / 1000)}s remaining`);
+        return;
+      }
+
+      const stakeVal = parseFloat(els.stake.value) || 1;
+      const durationVal = parseInt(els.duration.value) || 5;
+      const symbolVal = els.symbol.value;
+      const barrierVal = String(hotDigit);
+
+      if(stakeVal < 0.35){
+        log('Error: Stake must be at least 0.35 USD.');
+        isPlacing = false;
+        return;
+      }
+      if(durationVal < 1 || durationVal > 10){
+        log('Error: Duration must be between 1 and 10 ticks.');
+        isPlacing = false;
+        return;
+      }
+      if(balance < stakeVal){
+        log('Error: Insufficient balance to place trade.');
+        tradingEnabled = false;
+        autoTradingEnabled = false;
+        updateAutoTradingUI();
+        stop();
+        return;
+      }
+
+      isPlacing = true;
+      lastTradeTime = now;
+      lastTradeDigit = hotDigit;
+      tradesThisHour++;
+      
+      const proposal = {
+        proposal: 1,
+        amount: stakeVal,
+        basis: 'stake',
+        contract_type: 'DIGITDIFF',
+        currency: 'USD',
+        duration: durationVal,
+        duration_unit: 't',
+        symbol: symbolVal,
+        barrier: barrierVal
+      };
+      try{
+        ws.send(JSON.stringify(proposal));
+        log(`🤖 AUTO: DIGITDIFF - Avoid ${barrierVal}, $${stakeVal}, ${durationVal} ticks`);
+      } catch(e){
+        log('Error sending proposal request: ' + e.message);
+        isPlacing = false;
+      }
+    }
+
+    function render(){
+      const counts = Array(10).fill(0);
+      for(const d of tickHistory) counts[d]++;
+      const total = tickHistory.length || 1;
+      const freqs = counts.map(c => (c/total*100));
+
+      let maxFreq = Math.max(...freqs);
+      let minFreq = Math.min(...freqs);
+      let hotDigit = freqs.indexOf(maxFreq);
+      let coldDigit = freqs.indexOf(minFreq);
+
+      const maxPct = Math.max(20, Math.ceil(maxFreq));
+      [...els.bars.children].forEach((bar, i) => {
+        const pct = freqs[i];
+        bar.style.height = `${Math.max(4, pct/maxPct*100)}%`;
+        bar.firstChild.textContent = `${pct.toFixed(2)}%`;
+        
+        if(i === hotDigit){
+          bar.style.background = 'linear-gradient(to top, var(--bad), #f97316)';
+        } else if(i === coldDigit){
+          bar.style.background = 'linear-gradient(to top, var(--good), #22d3ee)';
+        } else {
+          bar.style.background = 'linear-gradient(to top, var(--brand), var(--accent))';
+        }
+      });
+
+      els.kvTicks.textContent = tickHistory.length;
+      els.kvHot.textContent = `${hotDigit} (${maxFreq.toFixed(2)}%)`;
+      els.kvCold.textContent = `${coldDigit} (${minFreq.toFixed(2)}%)`;
+      els.freqText.textContent = freqs.map((f,i)=> `${i}: ${f.toFixed(2)}%`).join('\n');
+      els.recent.textContent = tickHistory.slice(0,120).join(', ');
+
+      const threshold = parseFloat(els.cluster.value) || 13;
+      if(tickHistory.length < 50){
+        els.signal.className = 'signal warn';
+        els.signal.textContent = 'Need more data (≥ 50 ticks)';
+      } else if(maxFreq > threshold){
+        els.signal.className = 'signal bad';
+        els.signal.textContent = `❌ Too clustered. Avoid digit ${hotDigit} at ${maxFreq.toFixed(2)}% (> ${threshold}%).`;
+        
+        // If auto trading is enabled, we'll place the trade in the tick handler
+      } else {
+        els.signal.className = 'signal good';
+        els.signal.textContent = `✅ Trade allowed. Avoid digit ${hotDigit}. Prefer mid-range digits. (Window ${tickHistory.length})`;
+      }
+    }
+
+    // Add event listeners for parameter changes
+    els.window.addEventListener('change', function(){
+      const maxTicks = parseInt(this.value, 10) || 500;
+      if(tickHistory.length > maxTicks){
+        tickHistory = tickHistory.slice(0, maxTicks);
+      }
+      render();
+    });
+    
+    els.cluster.addEventListener('change', render);
+    els.stake.addEventListener('change', () => log('Stake updated to ' + els.stake.value + ' USD'));
+    els.duration.addEventListener('change', () => log('Duration updated to ' + els.duration.value + ' ticks'));
+    els.tp.addEventListener('change', () => log('Target Profit updated to ' + els.tp.value + ' USD'));
+    els.sl.addEventListener('change', () => log('Stop Loss updated to ' + els.sl.value + ' USD'));
+    els.cooldown.addEventListener('change', function() {
+      tradeCooldown = parseInt(this.value) * 1000;
+      log(`Trade cooldown set to ${this.value} seconds`);
+    });
+
+    // Wire up UI
+    els.btnStart.addEventListener('click', connect);
+    els.btnStop.addEventListener('click', stop);
+    els.btnClear.addEventListener('click', clearData);
+    els.btnAutoStart.addEventListener('click', startAutoTrading);
+    els.btnAutoStop.addEventListener('click', stopAutoTrading);
+    els.symbol.addEventListener('change', () => {
+      if(ws && ws.readyState === WebSocket.OPEN){
+        log('Symbol changed to ' + els.symbol.value + '. Reconnecting…');
+        stop();
+        connect();
+      }
+    });
+
+    // Initial render
+    render();
+  </script>
+</body>
+</html>
